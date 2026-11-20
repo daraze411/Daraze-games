@@ -187,7 +187,6 @@ body{
     <svg class="on" viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
     <svg class="off" viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>
   </button>
-  <audio id="music" src="musica.mp3" loop preload="auto"></audio>
 
 </main>
 
@@ -247,25 +246,14 @@ const GAMES = [
 
 const $ = id => document.getElementById(id);
 
-/* Audio: la musica della home parte al primo tocco (i browser non permettono di partire da sola) */
-const music = $('music');
-const MUSIC_VOL = .6;
+/* Audio: solo effetti sonori. Il pulsante in alto a destra li attiva e disattiva. */
 let muted = false;
-music.volume = MUSIC_VOL;
-function startMusic() {
-  if (muted) return;
-  music.play().then(unlisten).catch(() => {});
-}
-const gestures = ['pointerdown', 'touchend', 'keydown', 'click'];
-function unlisten() { gestures.forEach(e => document.removeEventListener(e, startMusic, true)); }
-gestures.forEach(e => document.addEventListener(e, startMusic, true));
-startMusic();
 $('snd').addEventListener('click', ev => {
   ev.stopPropagation();
   muted = !muted;
   $('snd').setAttribute('aria-pressed', String(muted));
-  $('snd').setAttribute('aria-label', muted ? "Attiva l'audio" : "Disattiva l'audio");
-  if (muted) music.pause(); else music.play().catch(() => {});
+  $('snd').setAttribute('aria-label', muted ? "Attiva i suoni" : "Disattiva i suoni");
+  if (!muted) clack();
 });
 
 /* Bip dell'autodistruzione */
@@ -286,6 +274,34 @@ function beep(freq, dur) {
   o.connect(g); g.connect(actx.destination);
   o.start(t); o.stop(t + dur + .02);
 }
+
+/* Suono del pulsante: un clack meccanico con un piccolo bip */
+function clack() {
+  if (muted || !AC) return;
+  actx = actx || new AC();
+  if (actx.state === 'suspended') actx.resume();
+  const t = actx.currentTime;
+  // rumore breve: il "clack"
+  const n = Math.floor(actx.sampleRate * .04);
+  const buf = actx.createBuffer(1, n, actx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+  const src = actx.createBufferSource();
+  src.buffer = buf;
+  const ng = actx.createGain();
+  ng.gain.value = .35;
+  src.connect(ng); ng.connect(actx.destination);
+  src.start(t);
+  // bip che scende
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(900, t);
+  o.frequency.exponentialRampToValueAtTime(420, t + .12);
+  g.gain.setValueAtTime(.14, t);
+  g.gain.exponentialRampToValueAtTime(.0001, t + .14);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t); o.stop(t + .15);
+}
 const pct = (v, t) => (v / t * 100) + '%';
 
 GAMES.forEach(g => {
@@ -297,7 +313,7 @@ GAMES.forEach(g => {
   const [x1, y1, x2, y2] = g.rect;
   b.style.cssText = `left:${pct(x1, W)};top:${pct(y1, H)};width:${pct(x2 - x1, W)};height:${pct(y2 - y1, H)};--glow:${g.glow};`;
   if (g.round) b.style.borderRadius = '50%';
-  b.addEventListener('click', () => select(g));
+  b.addEventListener('click', () => { clack(); select(g); });
   g._el = b;
   $('stage').appendChild(b);
 });
@@ -321,7 +337,6 @@ function eggCancel() {
   eggRunning = false;
   $('screen').classList.remove('alarm', 'poweroff', 'blackout');
   $('go').hidden = false;
-  music.volume = MUSIC_VOL;
 }
 function eggPaint(kind, title, font, ts, tc) {
   const s = $('screen');
@@ -345,7 +360,6 @@ function selfDestruct(g) {
   const s = $('screen');
   const digits = "'Orbitron',sans-serif";
   s.classList.add('alarm');
-  music.volume = .18;
   beep(880, .14);
   eggPaint("Hai appena attivato l'autodistruzione.", "5", digits, "34cqw", "#ff3b2a");
   for (let n = 4; n >= 0; n--) {
