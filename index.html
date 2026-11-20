@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daraze Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bowlby+One&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Metal+Mania&family=Orbitron:wght@800&family=Pirata+One&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{--signal:#ffc83d}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden}
+body{
+  background:#05070a;
+  font-family:'Bricolage Grotesque',system-ui,sans-serif;
+  display:flex;justify-content:center;align-items:center;
+}
+:focus-visible{outline:3px solid var(--signal);outline-offset:2px}
+
+/* La plancia: l'immagine dentro un riquadro che sta sempre tutto nella finestra */
+.stage{
+  position:relative;
+  width:min(100vw, calc(100dvh * 941 / 1671));
+  aspect-ratio:941 / 1671;
+  container-type:inline-size;
+  flex:0 0 auto;
+}
+.art{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none}
+
+/* Pulsanti invisibili sopra quelli disegnati */
+.hot{
+  all:unset;box-sizing:border-box;cursor:pointer;
+  position:absolute;
+  border-radius:2.2cqw;
+  -webkit-tap-highlight-color:transparent;
+  transition:box-shadow .12s, background .12s;
+}
+.hot:hover,.hot:focus-visible{
+  background:color-mix(in srgb,var(--glow) 16%,transparent);
+  box-shadow:0 0 3cqw .4cqw var(--glow);
+}
+.hot[aria-pressed="true"]{
+  background:color-mix(in srgb,var(--glow) 28%,transparent);
+  box-shadow:0 0 4cqw .8cqw var(--glow), inset 0 0 3cqw var(--glow);
+}
+
+/* Schermo: spento all'apertura */
+.screen{
+  position:absolute;
+  left:4.9%;top:29.6%;width:90.8%;height:37.4%;
+  border-radius:5.5cqw;
+  background:transparent;
+  overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:inset 0 0 6cqw rgba(0,0,0,.9);
+}
+.screen.on{background:rgba(2,10,16,.92)}
+.screen.alarm{background:rgba(26,2,2,.93);animation:alarm 1s ease-in-out infinite}
+.screen.alarm .kind{color:#ff9a8a;font-size:4.4cqw;font-weight:800}
+.screen.blackout{background:#000;animation:none}
+.screen.blackout .content,.screen.blackout .static,.screen.blackout .prompt,.screen.blackout .scan{visibility:hidden}
+@keyframes alarm{
+  0%,100%{box-shadow:inset 0 0 6cqw rgba(0,0,0,.9)}
+  50%{box-shadow:inset 0 0 9cqw rgba(255,40,20,.6)}
+}
+@keyframes crt-off{
+  0%{transform:scale(1,1);filter:brightness(1)}
+  60%{transform:scale(1,.01);filter:brightness(5)}
+  100%{transform:scale(0,.004);filter:brightness(8);opacity:0}
+}
+.content{
+  position:relative;z-index:1;
+  width:100%;height:100%;
+  padding:3cqw 5cqw;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.2cqw;
+  text-align:center;
+}
+.screen.idle .content{visibility:hidden}
+.kind{color:#9fdcf0;font-size:3.4cqw}
+.title{
+  font-family:var(--font);
+  font-size:var(--ts);
+  line-height:1.02;
+  white-space:pre-line;
+  color:var(--tc);
+  text-shadow:-.5cqw 0 rgba(255,0,60,.55), .5cqw 0 rgba(0,200,255,.55), 0 0 2.4cqw var(--tc);
+  overflow-wrap:anywhere;
+}
+.go{
+  display:inline-block;
+  background:var(--signal);color:#1b1405;
+  font-weight:800;font-size:4.6cqw;text-decoration:none;
+  padding:1.6cqw 7cqw;border-radius:1.6cqw;
+  box-shadow:0 .8cqw 0 #a37a0a;
+  margin-top:1cqw;
+}
+.go:active{transform:translateY(.5cqw);box-shadow:0 .3cqw 0 #a37a0a}
+.go[aria-disabled="true"]{background:rgba(255,255,255,.12);color:#8ba3b0;box-shadow:none;pointer-events:none}
+.url{color:#9fdcf0;font-size:2.9cqw;word-break:break-all}
+.url[hidden]{display:none}
+.credit{color:#7fb6cc;font-size:2.8cqw}
+.credit[hidden]{display:none}
+
+.static{
+  position:absolute;inset:0;width:100%;height:100%;z-index:2;
+  image-rendering:pixelated;pointer-events:none;
+  opacity:0;
+}
+.screen.idle .static{opacity:.4}
+.screen.burst .static{opacity:.92}
+.prompt{
+  display:none;position:absolute;z-index:3;
+  background:rgba(0,0,0,.72);color:#bfe9ff;
+  font-size:3.8cqw;padding:2cqw 4cqw;border-radius:1.2cqw;
+  text-align:center;width:68cqw;
+}
+.prompt small{display:block;margin-top:1.4cqw;font-size:2.4cqw;line-height:1.3;color:#8fb0bf}
+.screen.idle .prompt{display:block}
+.scan{
+  position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:repeating-linear-gradient(to bottom,rgba(255,255,255,.04) 0 1px,transparent 1px 3px);
+}
+.go[hidden]{display:none}
+.screen.boot .content{animation:crt-on .6s cubic-bezier(.2,.7,.3,1), flick 4s linear .6s infinite}
+.scan::after{
+  content:"";position:absolute;left:0;right:0;top:0;height:22cqw;
+  background:linear-gradient(to bottom,transparent,rgba(190,235,255,.07),transparent);
+  animation:roll 7s linear infinite;
+}
+.screen.idle .scan::after{display:none}
+.screen.poweroff .content{animation:crt-off .35s ease-in forwards}
+.scan::before{ /* bordi scuri e leggermente curvi, come un vecchio tubo catodico */
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%);
+}
+@keyframes crt-on{
+  0%{transform:scale(0,.004);filter:brightness(8);opacity:1}
+  35%{transform:scale(1,.004);filter:brightness(8)}
+  70%{transform:scale(1,1.06);filter:brightness(2.2)}
+  100%{transform:scale(1,1);filter:brightness(1)}
+}
+@keyframes flick{
+  0%,100%{opacity:1}
+  41%{opacity:1}
+  43%{opacity:.9}
+  46%{opacity:1}
+  78%{opacity:.95}
+  80%{opacity:1}
+}
+@keyframes roll{from{transform:translateY(-30cqw)}to{transform:translateY(80cqw)}}
+
+
+.snd{
+  all:unset;box-sizing:border-box;cursor:pointer;
+  position:absolute;right:3.4%;top:1.2%;
+  width:7.4cqw;height:7.4cqw;padding:1.5cqw;border-radius:50%;
+  background:rgba(0,0,0,.5);color:#cfe7f2;
+  -webkit-tap-highlight-color:transparent;
+}
+.snd .off{display:none}
+.snd[aria-pressed="true"] .on{display:none}
+.snd[aria-pressed="true"] .off{display:block}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+  <img class="art" src="plancia.jpg" alt="Plancia di comando di un'astronave con sei pulsanti e uno schermo">
+
+  <section class="screen idle" id="screen" aria-live="polite" aria-label="Schermo">
+    <div class="content">
+      <p class="kind" id="kind"></p>
+      <h1 class="title" id="title"></h1>
+      <p class="credit" id="credit" hidden></p>
+      <a class="go" id="go" target="_blank" rel="noopener"></a>
+      <a class="url" id="url" target="_blank" rel="noopener" hidden></a>
+    </div>
+    <canvas class="static" id="static" aria-hidden="true"></canvas>
+    <div class="prompt">
+      <p>Premi un pulsante</p>
+      <small>Progetti amatoriali senza scopo di lucro. Gli omaggi sono ispirati a opere di altri autori e non hanno alcun legame con loro.</small>
+    </div>
+    <div class="scan"></div>
+  </section>
+
+  <button class="snd" id="snd" type="button" aria-pressed="false" aria-label="Disattiva l'audio">
+    <svg class="on" viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+    <svg class="off" viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>
+  </button>
+  <audio id="music" src="musica.mp3" loop preload="auto"></audio>
+
+</main>
+
+<script>
+/* ---------------------------------------------------------------
+   COME AGGIUNGERE O CAMBIARE UN GIOCO
+   - "url": quando il gioco è online, scrivi qui l'indirizzo e il tasto si attiva.
+   - "rect": posizione del pulsante nell'immagine [x1, y1, x2, y2] in pixel
+     (l'immagine è 941 x 1672).
+   - "glow": colore dell'alone del pulsante.
+---------------------------------------------------------------- */
+const W = 941, H = 1671;
+const GAMES = [
+  {
+    title: "Invasione", kind: "Videogioco",
+    status: "Online", url: "https://invasione.netlify.app/",
+    rect: [22, 215, 242, 405], glow: "#2aa8ff",
+    font: "'Press Start 2P',monospace", ts: "7.4cqw", tc: "#5ee07a"
+  },
+  {
+    title: "DANIHELL", kind: "Gioco di dadi",
+    status: "Online", url: "https://daraze411.github.io/danihell/",
+    rect: [258, 215, 462, 405], glow: "#ff3b2a",
+    font: "'Pirata One',serif", ts: "17cqw", tc: "#ff4b3a"
+  },
+  {
+    title: "Kill Quentin", kind: "La briscola di Tarantino. Più o meno.",
+    status: "Online", url: "https://daraze411.github.io/killquentin/",
+    rect: [482, 215, 688, 405], glow: "#3bff3b",
+    font: "'Anton',sans-serif", ts: "15cqw", tc: "#ffd21f"
+  },
+  {
+    title: "Santi\nvs\nCorrotti", kind: "Gioco di carte",
+    status: "Online", url: "https://daraze411.github.io/santivscorrotti/",
+    rect: [704, 215, 918, 405], glow: "#ffb21e",
+    font: "'Bowlby One',sans-serif", ts: "9.5cqw", tc: "#ffc24a"
+  },
+  {
+    title: "Metallari\nvs\nResto del mondo", kind: "Gioco di carte",
+    credit: "Ispirato a Gwent.",
+    status: "Link in arrivo", url: "",
+    rect: [92, 1210, 408, 1420], glow: "#2aa8ff",
+    font: "'Metal Mania',cursive", ts: "8.4cqw", tc: "#dfe4e8"
+  },
+  {
+    title: "Neo-Doge", kind: "Gioco da tavolo in versione web",
+    credit: "Omaggio a The King is Dead di Peer Sylvester.",
+    status: "Online", url: "https://daraze411.github.io/neo-doge/",
+    rect: [538, 1210, 852, 1420], glow: "#3bff3b",
+    font: "'Orbitron',sans-serif", ts: "11cqw", tc: "#2fe0d6"
+  },
+  { /* Easter egg: la manopola in basso a destra avvia l'autodistruzione (scherzo). */
+    egg: true, round: true,
+    rect: [772, 1492, 904, 1626], glow: "#ffd27a"
+  }
+];
+
+const $ = id => document.getElementById(id);
+
+/* Audio: la musica della home parte al primo tocco (i browser non permettono di partire da sola) */
+const music = $('music');
+const MUSIC_VOL = .6;
+let muted = false;
+music.volume = MUSIC_VOL;
+function startMusic() {
+  if (muted) return;
+  music.play().then(unlisten).catch(() => {});
+}
+const gestures = ['pointerdown', 'touchend', 'keydown', 'click'];
+function unlisten() { gestures.forEach(e => document.removeEventListener(e, startMusic, true)); }
+gestures.forEach(e => document.addEventListener(e, startMusic, true));
+startMusic();
+$('snd').addEventListener('click', ev => {
+  ev.stopPropagation();
+  muted = !muted;
+  $('snd').setAttribute('aria-pressed', String(muted));
+  $('snd').setAttribute('aria-label', muted ? "Attiva l'audio" : "Disattiva l'audio");
+  if (muted) music.pause(); else music.play().catch(() => {});
+});
+
+/* Bip dell'autodistruzione */
+const AC = window.AudioContext || window.webkitAudioContext;
+let actx = null;
+function beep(freq, dur) {
+  if (muted || !AC) return;
+  actx = actx || new AC();
+  if (actx.state === 'suspended') actx.resume();
+  const t = actx.currentTime;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'square';
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(.16, t + .01);
+  g.gain.setValueAtTime(.16, t + Math.max(dur - .03, .02));
+  g.gain.linearRampToValueAtTime(0, t + dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t); o.stop(t + dur + .02);
+}
+const pct = (v, t) => (v / t * 100) + '%';
+
+GAMES.forEach(g => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'hot';
+  b.setAttribute('aria-pressed', 'false');
+  b.setAttribute('aria-label', g.egg ? 'Manopola' : g.title.replace(/\n/g, ' ') + ', ' + g.kind);
+  const [x1, y1, x2, y2] = g.rect;
+  b.style.cssText = `left:${pct(x1, W)};top:${pct(y1, H)};width:${pct(x2 - x1, W)};height:${pct(y2 - y1, H)};--glow:${g.glow};`;
+  if (g.round) b.style.borderRadius = '50%';
+  b.addEventListener('click', () => select(g));
+  g._el = b;
+  $('stage').appendChild(b);
+});
+
+function screenOff() {
+  eggCancel();
+  GAMES.forEach(x => x._el.setAttribute('aria-pressed', 'false'));
+  const s = $('screen');
+  clearTimeout(burstT);
+  s.classList.remove('on', 'boot', 'burst');
+  s.classList.add('idle');
+  noiseOn();
+}
+
+/* Easter egg: autodistruzione finta */
+let eggTimers = [], eggRunning = false;
+function eggAt(ms, fn) { eggTimers.push(setTimeout(fn, ms)); }
+function eggCancel() {
+  eggTimers.forEach(clearTimeout);
+  eggTimers = [];
+  eggRunning = false;
+  $('screen').classList.remove('alarm', 'poweroff', 'blackout');
+  $('go').hidden = false;
+  music.volume = MUSIC_VOL;
+}
+function eggPaint(kind, title, font, ts, tc) {
+  const s = $('screen');
+  $('kind').textContent = kind;
+  const t = $('title');
+  t.textContent = title;
+  t.style.cssText = `--font:${font};--ts:${ts};--tc:${tc};`;
+  $('credit').hidden = true;
+  $('go').hidden = true;
+  $('url').hidden = true;
+  s.classList.remove('idle', 'boot', 'poweroff', 'blackout');
+  s.classList.add('on');
+  void s.offsetWidth;
+  s.classList.add('boot');
+  burst();
+}
+function selfDestruct(g) {
+  if (eggRunning) return;
+  eggRunning = true;
+  GAMES.forEach(x => x._el.setAttribute('aria-pressed', String(x === g)));
+  const s = $('screen');
+  const digits = "'Orbitron',sans-serif";
+  s.classList.add('alarm');
+  music.volume = .18;
+  beep(880, .14);
+  eggPaint("Hai appena attivato l'autodistruzione.", "5", digits, "34cqw", "#ff3b2a");
+  for (let n = 4; n >= 0; n--) {
+    eggAt((5 - n) * 1000, () => {
+      $('title').textContent = String(n);
+      if (n > 0) beep(880, .14); else beep(880, 1.3);
+    });
+  }
+  eggAt(5600, () => { s.classList.remove('boot'); s.classList.add('poweroff'); });
+  eggAt(5950, () => { s.classList.remove('alarm', 'poweroff'); s.classList.add('blackout'); });
+  eggAt(7600, () => {
+    eggPaint("", "Ho mentito.", "'Bowlby One',sans-serif", "13cqw", "#ffffff");
+  });
+  eggAt(10200, () => screenOff());
+}
+
+function select(g) {
+  if (g.egg) { selfDestruct(g); return; }
+  eggCancel();
+  GAMES.forEach(x => x._el.setAttribute('aria-pressed', String(x === g)));
+  $('kind').textContent = g.kind;
+  const t = $('title');
+  t.textContent = g.title;
+  t.style.cssText = `--font:${g.font};--ts:${g.ts};--tc:${g.tc};`;
+  const c = $('credit');
+  c.hidden = !g.credit;
+  c.textContent = g.credit || '';
+  const go = $('go'), u = $('url');
+  if (g.url) {
+    go.href = g.url;
+    go.textContent = 'Gioca';
+    go.removeAttribute('aria-disabled');
+    go.removeAttribute('tabindex');
+    u.href = g.url;
+    u.textContent = g.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    u.hidden = false;
+  } else {
+    go.removeAttribute('href');
+    go.textContent = g.status;
+    go.setAttribute('aria-disabled', 'true');
+    go.setAttribute('tabindex', '-1');
+    u.hidden = true;
+  }
+  const s = $('screen');
+  s.classList.remove('idle', 'boot');
+  s.classList.add('on');
+  void s.offsetWidth;
+  s.classList.add('boot');
+  burst();
+}
+
+/* Rumore video: schermo spento all'apertura e breve scarica a ogni pulsante */
+const cv = $('static'), ctx = cv.getContext('2d');
+cv.width = 180; cv.height = 130;
+const img = ctx.createImageData(cv.width, cv.height);
+const reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+function frame() {
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = Math.random() * 190;
+    d[i] = d[i + 1] = d[i + 2] = v;
+    d[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+let timer = null, burstT = null;
+function noiseOn() { frame(); if (!reduce && !timer) timer = setInterval(frame, 70); }
+function noiseOff() { clearInterval(timer); timer = null; }
+function burst() {
+  if (reduce) return;
+  const s = $('screen');
+  clearTimeout(burstT);
+  s.classList.add('burst');
+  noiseOn();
+  burstT = setTimeout(() => { s.classList.remove('burst'); noiseOff(); }, 320);
+}
+noiseOn();
+</script>
+</body>
+</html>
